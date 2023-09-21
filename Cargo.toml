@@ -1,0 +1,20 @@
+[package]
+edition = "2021"
+name = "simple-id"
+version = "0.0.1"
+
+[features]
+default = ["serde", "sqlx"]
+
+[dependencies]
+anyhow = "1"
+base64 = "^0.21"
+chrono = { version = "0", features = ["serde"] }
+rand = "0"
+serde = { version = "1", features = ["derive"], optional = true }
+sqlx = { version = "0", features = [
+    "chrono",
+    "runtime-tokio-rustls",
+    "sqlite",
+], optional = true }
+
