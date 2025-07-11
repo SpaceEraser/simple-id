@@ -1,44 +1,35 @@
 use sqlx::{
-    sqlite::{SqliteArgumentValue, SqliteTypeInfo, SqliteValueRef},
-    Decode, Encode, Sqlite, Type,
+    any::{Any, AnyTypeInfo, AnyTypeInfoKind},
+    encode::IsNull,
+    error::BoxDynError,
+    Database, Decode, Encode, Type,
 };
 
-use super::{Id, Inner};
+use super::Id;
 
-impl Encode<'_, Sqlite> for Id {
-    fn encode(
-        self,
-        buf: &mut <Sqlite as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull
-    where
-        Self: Sized,
-    {
-        <Vec<u8> as Encode<Sqlite>>::encode(self.0.to_be_bytes().to_vec(), buf)
-    }
-
-    fn encode_by_ref(&self, buf: &mut Vec<SqliteArgumentValue<'_>>) -> sqlx::encode::IsNull {
-        <Vec<u8> as Encode<Sqlite>>::encode_by_ref(&self.0.to_be_bytes().to_vec(), buf)
+impl<'q> Encode<'q, Any> for Id {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Any as Database>::ArgumentBuffer<'q>,
+    ) -> Result<IsNull, BoxDynError> {
+        Encode::<Any>::encode(self.0 as i64, buf)
     }
 }
 
-impl Decode<'_, Sqlite> for Id {
-    fn decode(value: SqliteValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
-        let num_bytes_required = std::mem::size_of::<Inner>();
-        match <&[u8] as Decode<Sqlite>>::decode(value) {
-            Ok(slice) => {
-                if slice.len() != num_bytes_required {
-                    Err(format!("Id requires {num_bytes_required} but got {}", slice.len()).into())
-                } else {
-                    Ok(Self(Inner::from_be_bytes(slice.try_into().unwrap())))
-                }
-            }
-            Err(e) => Err(e),
+impl<'r> Decode<'r, Any> for Id {
+    fn decode(value: <Any as Database>::ValueRef<'r>) -> Result<Self, BoxDynError> {
+        Ok(Self(<i64 as Decode<Any>>::decode(value)? as _))
+    }
+}
+
+impl Type<Any> for Id {
+    fn type_info() -> AnyTypeInfo {
+        AnyTypeInfo {
+            kind: AnyTypeInfoKind::BigInt,
         }
     }
-}
 
-impl Type<Sqlite> for Id {
-    fn type_info() -> SqliteTypeInfo {
-        <&[u8] as Type<Sqlite>>::type_info()
+    fn compatible(ty: &AnyTypeInfo) -> bool {
+        ty.kind().is_integer()
     }
 }

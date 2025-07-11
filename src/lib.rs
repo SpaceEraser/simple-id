@@ -1,2 +1,3 @@
-pub mod chrono_id;
-pub mod random_id;
+mod chrono_id;
+
+pub use chrono_id::Id;

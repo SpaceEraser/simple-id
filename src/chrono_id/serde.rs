@@ -1,22 +1,21 @@
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use super::Id;
 
-impl serde::Serialize for Id {
+impl Serialize for Id {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer,
+        S: Serializer,
     {
-        serializer.serialize_str(&self.to_base64())
+        serializer.serialize_u64(self.0)
     }
 }
 
-impl<'a> serde::Deserialize<'a> for Id {
+impl<'a> Deserialize<'a> for Id {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'a>,
+        D: Deserializer<'a>,
     {
-        Ok(
-            Self::from_base64(<&str as serde::Deserialize>::deserialize(deserializer)?)
-                .map_err(|e| serde::de::Error::custom(e.to_string()))?,
-        )
+        Ok(Self(<u64 as Deserialize>::deserialize(deserializer)?))
     }
 }
